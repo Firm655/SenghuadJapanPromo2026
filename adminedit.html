@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Admin Edit - Lucky Draw</title>
+</head>
+
+<body>
+
+    <h1>Admin Editor</h1>
+
+    <table border="1" id="dataTable">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Customer Name</th>
+                <th>Purchase Value</th>
+                <th>Tickets</th>
+                <th>Timestamp</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+
+    <script type="module">
+
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+
+        import {
+            getFirestore,
+            collection,
+            getDocs,
+            doc,
+            updateDoc,
+            deleteDoc
+        } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyD3QtsPuTT9v6EwNCiwycMZ8_5FUCIEj1E",
+            authDomain: "senghuad-japan-luckydraw-2026.firebaseapp.com",
+            projectId: "senghuad-japan-luckydraw-2026",
+            storageBucket: "senghuad-japan-luckydraw-2026.firebasestorage.app",
+            messagingSenderId: "1004245641810",
+            appId: "1:1004245641810:web:c7b9ed25c7ed9d29fe0d8b"
+        };
+
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+
+        async function loadData() {
+
+            const tableBody = document.querySelector("#dataTable tbody");
+            tableBody.innerHTML = "";
+
+            const querySnapshot = await getDocs(collection(db, "entries"));
+
+            querySnapshot.forEach((documentData) => {
+
+                const data = documentData.data();
+                const id = documentData.id;
+
+                let timeText = "";
+
+                if (data.timestamp) {
+                    const date = data.timestamp.toDate();
+                    timeText = date.toLocaleString();
+                }
+
+                const row = document.createElement("tr");
+
+                row.innerHTML = `
+
+        <td>${id}</td>
+
+        <td>
+            <input type="text" value="${data.customerName || ""}" id="name-${id}">
+        </td>
+
+        <td>
+            <input type="number" value="${data.purchaseValue || 0}" id="purchase-${id}">
+        </td>
+
+        <td>
+            <input type="number" value="${data.tickets || 0}" id="tickets-${id}">
+        </td>
+
+        <td>${timeText}</td>
+
+        <td>
+            <button onclick="saveEdit('${id}')">Save</button>
+            <button onclick="deleteEntry('${id}')">Delete</button>
+        </td>
+
+        `;
+
+                tableBody.appendChild(row);
+
+            });
+
+        }
+
+
+        window.saveEdit = async function (id) {
+
+            const name = document.getElementById(`name-${id}`).value;
+            const purchase = Number(document.getElementById(`purchase-${id}`).value);
+            const tickets = Number(document.getElementById(`tickets-${id}`).value);
+
+            const docRef = doc(db, "entries", id);
+
+            await updateDoc(docRef, {
+                customerName: name,
+                purchaseValue: purchase,
+                tickets: tickets
+            });
+
+            alert("Updated!");
+
+        }
+
+
+        window.deleteEntry = async function (id) {
+
+            if (!confirm("Delete this entry?")) return;
+
+            const docRef = doc(db, "entries", id);
+
+            await deleteDoc(docRef);
+
+            loadData();
+
+        }
+        window.downloadCSV = async function () {
+
+            const querySnapshot = await getDocs(collection(db, "entries"));
+
+            let csv = "ID,Customer Name,Purchase Value,Tickets,Timestamp\n";
+
+            querySnapshot.forEach((docSnap) => {
+
+                const data = docSnap.data();
+
+                let timeText = "";
+
+                if (data.timestamp) {
+                    const date = data.timestamp.toDate();
+                    timeText = date.toLocaleString();
+                }
+
+                csv += `${docSnap.id},"${data.customerName}",${data.purchaseValue},${data.tickets},"${timeText}"\n`;
+
+            });
+
+            /* UTF-8 BOM FIX */
+            const BOM = "\uFEFF";
+
+            const blob = new Blob([BOM + csv], { type: "text/csv;charset=utf-8;" });
+
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement("a");
+
+            a.href = url;
+            a.download = "lucky_draw_entries.csv";
+
+            a.click();
+
+            URL.revokeObjectURL(url);
+        }
+
+        loadData();
+
+    </script>
+    <button onclick="downloadCSV()">Download Excel</button>
+</body>
+
+</html>

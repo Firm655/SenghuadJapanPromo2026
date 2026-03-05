@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Lucky Draw Viewer</title>
+
+    <style>
+        /* ---------- FONT ---------- */
+
+        @font-face {
+            font-family: 'KanitCustom';
+            src: url('fonts/Kanit-Regular.ttf') format('truetype');
+        }
+
+        /* ---------- GLOBAL ---------- */
+
+        body {
+            margin: 0;
+            font-family: 'KanitCustom', sans-serif;
+
+            background-image: url("images/backgroundJP.jpg");
+            background-size: cover;
+            background-position: center;
+
+            height: 100vh;
+            color: white;
+
+            overflow: hidden;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.55);
+            z-index: -1;
+        }
+
+        /* ---------- PROMOTION ---------- */
+
+        .promo-image {
+            position: fixed;
+            top: 5vh;
+            left: 3%;
+            z-index: 21;
+            filter: drop-shadow(0 10px 15px rgba(0, 0, 0, 0.6));
+        }
+
+        .promo-image img {
+            height: 200px;
+        }
+
+        /* ---------- TOP RIGHT ICON ---------- */
+
+        .top-icon {
+            position: fixed;
+            top: 2vh;
+            right: 2%;
+            height: 10vh;
+            z-index: 20;
+            background-color: #f3f8fe;
+            border: 2px solid black;
+            padding: 10px;
+            border-radius: 15px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.7);
+
+        }
+
+        .top-icon img {
+            height: 100%;
+        }
+
+        /* ---------- CAMPAIGN 1 (BELOW RECTANGLE) ---------- */
+
+        .campaign1 {
+            position: fixed;
+            bottom: -31vh;
+            left: -4.5vw;
+            opacity: 0.9;
+            z-index: 5;
+        }
+
+        .campaign1 img {
+            height: 87vh;
+        }
+
+        /* ---------- CAMPAIGN 2 ---------- */
+
+        .campaign2 {
+            position: fixed;
+            bottom: 15%;
+            left: 0%;
+            rotate: -5deg;
+            z-index: 21;
+            filter: drop-shadow(0 10px 15px rgba(0, 0, 0, 0.6));
+        }
+
+        .campaign2 img {
+            height: 80vh;
+        }
+
+        /* ---------- CENTER FRAME ---------- */
+
+        .content-frame {
+
+            position: absolute;
+
+            top: 50%;
+            right: -1.5%;
+
+            transform: translate(-50%, -50%);
+
+            width: 38%;
+            height: 80%;
+
+            background: rgba(0, 0, 0, 0.65);
+
+            border-radius: 2vh;
+            border: 2px solid rgba(255, 255, 255, 0.15);
+
+            padding: 3vh;
+
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.7);
+        }
+
+        /* ---------- TITLE ---------- */
+
+        .latest-title {
+            position: absolute;
+            top: 4vh;
+            left: 6vh;
+            font-size: 2vw;
+            opacity: 0.9;
+        }
+
+        /* ---------- POPUP DISPLAY ---------- */
+
+        .popup-box {
+
+            position: absolute;
+
+            top: 40%;
+            left: 50%;
+
+            transform: translate(-50%, -50%);
+
+            text-align: center;
+        }
+
+        .popup-box h2 {
+            font-size: 4vw;
+            margin: 0.5vh 0;
+        }
+
+        .popup-box p {
+            font-size: 2.5vw;
+        }
+
+        .latest-popup-box {
+
+            background: rgba(10, 60, 30, 0.85);
+
+            padding: 2vh 2vw;
+
+            border-radius: 1vh;
+
+            border: 2px solid rgba(255, 255, 255, 0.15);
+
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.6);
+
+            display: inline-block;
+
+            opacity: 1;
+            transition: opacity 2s ease;
+            /* smooth fade */
+
+        }
+
+
+        .fade-out {
+            opacity: 0;
+        }
+
+        /* ---------- TABLE ---------- */
+
+        .recent-section {
+            display: flex;
+            justify-content: center;
+            margin-top: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 1vh;
+
+            overflow: hidden;
+        }
+
+        th,
+        td {
+
+            padding: 1.2vh;
+            text-align: center;
+
+            font-size: 1.2vw;
+        }
+
+        th {
+            background: #1f2937;
+        }
+
+        tr:nth-child(even) {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        /* ---------- SLOT MACHINE BUTTON ---------- */
+
+        .slot-button {
+
+            position: fixed;
+
+            bottom: 2vh;
+            right: 2vw;
+
+            padding: 14px 24px;
+
+            font-size: 18px;
+            font-family: 'KanitCustom', sans-serif;
+
+            background: #052b13;
+            color: white;
+
+            border: none;
+            border-radius: 8px;
+
+            cursor: pointer;
+            border: 2px solid black;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+
+            z-index: 30;
+        }
+
+        .slot-button:hover {
+            background: #16a34a;
+        }
+    </style>
+
+
+    <script type="module">
+
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getFirestore, collection, query, orderBy, limit, onSnapshot }
+            from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyD3QtsPuTT9v6EwNCiwycMZ8_5FUCIEj1E",
+            authDomain: "senghuad-japan-luckydraw-2026.firebaseapp.com",
+            projectId: "senghuad-japan-luckydraw-2026",
+            storageBucket: "senghuad-japan-luckydraw-2026.firebasestorage.app",
+            messagingSenderId: "1004245641810",
+            appId: "1:1004245641810:web:c7b9ed25c7ed9d29fe0d8b"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        window.goSlot = function () {
+            window.location.href = "/slotmachine";
+        }
+        /* LIMIT 4 */
+
+        const q = query(
+            collection(db, "entries"),
+            orderBy("timestamp", "desc"),
+            limit(4)
+        );
+
+        let lastSeen = null;
+
+        onSnapshot(q, (snapshot) => {
+
+            const rows = [];
+
+            snapshot.forEach(doc => {
+                rows.push(doc.data());
+            });
+
+            /* UPDATE TABLE */
+
+            const table = document.getElementById("recentTable");
+            table.innerHTML = "";
+
+            rows.forEach(r => {
+
+                table.innerHTML += `
+<tr>
+<td>${r.customerName}</td>
+<td>${r.tickets}</td>
+</tr>
+`;
+
+            });
+
+            /* SHOW POPUP ONLY WHEN NEW ENTRY */
+
+            if (rows.length > 0) {
+
+                const latest = rows[0];
+
+                if (lastSeen !== latest.timestamp) {
+
+                    lastSeen = latest.timestamp;
+
+                    const popup = document.getElementById("popupBox");
+
+                    popup.innerHTML = `
+                    <div class="latest-popup-box">
+<h2>${latest.customerName}</h2>
+<p>${latest.tickets} สิทธิ</p>
+</div>
+`;
+
+                    setTimeout(() => {
+
+                        const box = popup.querySelector(".latest-popup-box");
+                        if (box) {
+                            box.classList.add("fade-out");
+                        }
+
+                        setTimeout(() => {
+                            popup.innerHTML = "";
+                        }, 2000);   // wait for fade to finish
+
+                    }, 10000);
+
+                }
+
+            }
+
+        });
+
+    </script>
+
+</head>
+
+<body>
+
+    <!-- Promotion -->
+
+    <div class="promo-image">
+        <img src="images/campaign.png">
+    </div>
+
+    <!-- Logo -->
+
+    <div class="top-icon">
+        <img src="images/senghuadlogo.jpg">
+    </div>
+
+    <!-- Campaign Images -->
+
+    <div class="campaign1">
+        <img src="images/campaign1.png">
+    </div>
+
+    <div class="campaign2">
+        <img src="images/campaign2.png">
+    </div>
+
+    <!-- CENTER FRAME -->
+
+    <div class="content-frame">
+
+        <div class="latest-title">
+            ลูกค้าล่าสุด :
+        </div>
+
+        <div class="popup-box" id="popupBox"></div>
+
+        <div class="recent-section">
+
+            <table>
+
+                <thead>
+                    <tr>
+                        <th>ชื่อลูกค้า</th>
+                        <th>จำนวนสิทธิ</th>
+                    </tr>
+                </thead>
+
+                <tbody id="recentTable"></tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+    <button class="slot-button" onclick="goSlot()">
+        ไปหน้า Slot Machine
+    </button>
+</body>
+
+</html>

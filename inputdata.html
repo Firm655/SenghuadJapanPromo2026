@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Customer Entry</title>
+
+    <style>
+        /* ---------- FONT ---------- */
+
+        @font-face {
+            font-family: 'KanitCustom';
+            src: url('fonts/Kanit-Regular.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        /* ---------- GLOBAL ---------- */
+
+        body {
+            font-family: 'KanitCustom', sans-serif;
+            background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* ---------- CARD ---------- */
+
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            width: 420px;
+        }
+
+        /* ---------- TITLE ---------- */
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #111827;
+        }
+
+        /* ---------- INPUTS ---------- */
+
+        .input-group {
+            margin-bottom: 18px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: #374151;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #d1d5db;
+            font-size: 16px;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #2563eb;
+        }
+
+        /* ---------- BUTTON ---------- */
+
+        button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            background: #2563eb;
+            color: white;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #1e40af;
+        }
+
+        /* ---------- POPUP ---------- */
+
+        #popup {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+        }
+
+        #popupContent {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            min-width: 320px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .popup-buttons {
+            margin-top: 20px;
+        }
+
+        .popup-buttons button {
+            width: auto;
+            padding: 10px 20px;
+            margin: 5px;
+        }
+    </style>
+
+
+    <script type="module">
+
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, serverTimestamp }
+            from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyD3QtsPuTT9v6EwNCiwycMZ8_5FUCIEj1E",
+            authDomain: "senghuad-japan-luckydraw-2026.firebaseapp.com",
+            projectId: "senghuad-japan-luckydraw-2026",
+            storageBucket: "senghuad-japan-luckydraw-2026.firebasestorage.app",
+            messagingSenderId: "1004245641810",
+            appId: "1:1004245641810:web:c7b9ed25c7ed9d29fe0d8b"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let tempData = null;
+
+        window.prepareSubmit = function () {
+
+            const name = document.getElementById("name").value;
+            const phone = document.getElementById("phone").value;
+            const value = Number(document.getElementById("value").value);
+
+            const tickets = Math.floor(value / 3000);
+
+            tempData = { name, phone, value, tickets };
+
+            document.getElementById("popup").style.display = "flex";
+
+            document.getElementById("popupContent").innerHTML = `
+<h2>Confirm Submission</h2>
+
+<p><b>Name:</b> ${name}</p>
+<p><b>เบอร์โทรศัพท์: </b> ${phone}</p>
+<p><b>มูลค่าการขาย: </b> ${value}</p>
+<p><b>จำนวนสิทธิ: </b> ${tickets}</p>
+
+<div class="popup-buttons">
+<button onclick="submitData()">ยืนยัน</button>
+<button onclick="closePopup()">แก้ไข</button>
+</div>
+`;
+
+        }
+
+        window.closePopup = function () {
+            document.getElementById("popup").style.display = "none";
+        }
+
+        window.submitData = async function () {
+
+            const popup = document.getElementById("popupContent");
+
+            popup.innerHTML = `<h2>กำลังส่งข้อมูล...</h2>`;
+
+            try {
+
+                await addDoc(collection(db, "entries"), {
+                    customerName: tempData.name,
+                    phone: tempData.phone,
+                    purchaseValue: tempData.value,
+                    tickets: tempData.tickets,
+                    timestamp: serverTimestamp()
+                });
+
+                let countdown = 10;
+
+                popup.innerHTML = `
+<h2>ส่งข้อมูลเรียบร้อย ✓</h2>
+
+<p><b>ชื่อ: </b> ${tempData.name}</p>
+<p><b>เบอร์โทรศัพท์: </b> ${tempData.phone}</p>
+<p><b>มูลค่าการขาย: </b> ${tempData.value}</p>
+<p><b>จำนวนสิทธิ: </b> ${tempData.tickets}</p>
+
+<p>หน้าต่างจะปิดในอีก <span id="timer">10</span> วินาที</p>
+
+<button onclick="closePopup()">ปิดหน้าต่าง</button>
+`;
+
+                document.getElementById("name").value = "";
+                document.getElementById("phone").value = "";
+                document.getElementById("value").value = "";
+
+                const timer = setInterval(() => {
+
+                    countdown--;
+                    document.getElementById("timer").innerText = countdown;
+
+                    if (countdown <= 0) {
+                        clearInterval(timer);
+                        closePopup();
+                    }
+
+                }, 1000);
+
+            } catch (err) {
+
+                popup.innerHTML = `
+<h2 style="color:red">Submission Failed</h2>
+<button onclick="closePopup()">Close</button>
+`;
+
+                console.error(err);
+
+            }
+
+        }
+
+    </script>
+
+</head>
+
+<body>
+
+    <div class="container">
+
+        <h1>ข้อมูลลูกค้า</h1>
+
+        <div class="input-group">
+            <label>ชื่อลูกค้า</label>
+            <input id="name">
+        </div>
+
+        <div class="input-group">
+            <label>เบอร์โทรศัพท์</label>
+            <input id="phone">
+        </div>
+
+        <div class="input-group">
+            <label>มูลค่าการขาย</label>
+            <input id="value" type="number">
+        </div>
+
+        <button onclick="prepareSubmit()">ยืนยัน</button>
+
+    </div>
+
+    <div id="popup">
+        <div id="popupContent"></div>
+    </div>
+
+</body>
+
+</html>

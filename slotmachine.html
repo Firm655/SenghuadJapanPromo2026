@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Scroll Wheel</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'KanitCustom', sans-serif;
+        }
+
+        @font-face {
+            font-family: 'KanitCustom';
+            /* We give it a unique name */
+            src: url('fonts/Kanit-Regular.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translate(-50%, -50%) rotate(var(--rotation)) translateY(0px);
+            }
+
+            50% {
+                transform: translate(-50%, -50%) rotate(var(--rotation)) translateY(-15px);
+            }
+
+            100% {
+                transform: translate(-50%, -50%) rotate(var(--rotation)) translateY(0px);
+            }
+        }
+
+        body {
+            height: 100vh;
+            overflow: hidden;
+
+            background-image: url("images/hotbackground.avif");
+            background-size: cover;
+            background-position: center;
+
+            position: relative;
+        }
+
+        /* ============================= */
+        /* ICONS                         */
+        /* ============================= */
+
+
+        .top-left-icon {
+            position: absolute;
+            top: 2%;
+            left: 2%;
+            width: 20%;
+            z-index: 50;
+
+            /* --- ADD THIS LINE --- */
+            /* Gives the transparent image a soft depth shadow */
+            filter: drop-shadow(0 10px 15px rgba(0, 0, 0, 0.6));
+        }
+
+        .top-right-icon {
+            position: absolute;
+            top: 2%;
+            right: 2%;
+            width: 15%;
+            z-index: 50;
+
+            /* --- ADD THESE LINES --- */
+            background-color: #f3f8fe;
+            /* Ensures padding area is visible if logo is transparent */
+            border: 2px solid black;
+            /* Sharp black border */
+            padding: 10px;
+            /* Smooth space between border and logo */
+            border-radius: 15px;
+            /* Rounds the corners for smoothness */
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.7);
+            /* Deep back shadow */
+
+            /* Optional: Ensures the image itself fills the padding space smoothly */
+            object-fit: contain;
+        }
+
+        /* ============================= */
+        /* MAIN RECTANGLE                */
+        /* ============================= */
+
+        .main-box {
+            position: absolute;
+            top: 60%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 420px;
+            height: 480px;
+            background: rgb(170, 72, 11);
+            border-radius: 50px;
+
+            /* This stays higher to be in front */
+            z-index: 10;
+
+            box-shadow: 0 0 25px rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .banner2 {
+            position: absolute;
+            top: 33%;
+            left: 43%;
+
+            --rotation: -10deg;
+
+            transform: translate(-50%, -50%) rotate(var(--rotation));
+
+            width: 15%;
+            z-index: 5;
+
+            filter: drop-shadow(0 10px 15px rgba(0, 0, 0, 0.5));
+
+            animation: float 5s ease-in-out infinite;
+            animation-delay: 0.5s;
+        }
+
+        .banner1 {
+            position: absolute;
+            top: 26%;
+            left: 55%;
+
+            --rotation: 5deg;
+
+            transform: translate(-50%, -50%) rotate(var(--rotation));
+
+            width: 450px;
+            z-index: 40;
+
+            pointer-events: none;
+
+            filter: drop-shadow(0 12px 18px rgba(0, 0, 0, 0.6));
+
+            animation: float 4s ease-in-out infinite;
+        }
+
+        /* ============================= */
+        /* WHEEL SECTION                 */
+        /* ============================= */
+
+        .wheel-section {
+
+            position: absolute;
+
+            top: 60%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+
+            z-index: 20;
+
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+
+        }
+
+        /* Wheel */
+
+        .wheel-wrapper {
+            height: 350px;
+            width: 260px;
+            overflow: hidden;
+            border-radius: 15px;
+            position: relative;
+
+            /* --- ADD THESE LINES --- */
+            border: 4px solid white;
+            /* The main white frame */
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.3),
+                /* Outer white glow */
+                inset 0 0 10px rgba(0, 0, 0, 0.5);
+            /* Inner shadow for depth */
+
+            background-color: #8a3000;
+            /* Dark background so white stands out */
+        }
+
+        /* fade */
+
+        .wheel-wrapper::before,
+        .wheel-wrapper::after {
+
+            content: "";
+            position: absolute;
+
+            left: 0;
+            width: 100%;
+            height: 70px;
+
+            pointer-events: none;
+
+            z-index: 2;
+
+        }
+
+        .wheel-wrapper::before {
+            top: 0;
+            background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8), transparent);
+        }
+
+        .wheel-wrapper::after {
+            bottom: 0;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
+        }
+
+        /* highlight */
+
+        .highlight {
+
+            position: absolute;
+
+            top: 140px;
+            height: 70px;
+            width: 100%;
+
+            border: 3px solid gold;
+
+            border-radius: 8px;
+
+            pointer-events: none;
+
+            z-index: 3;
+
+            box-shadow: 0 0 15px gold;
+
+        }
+
+        /* wheel */
+
+        .wheel {
+            transition: transform 5s cubic-bezier(0.1, 0.7, 0.1, 1);
+        }
+
+        .item {
+
+            height: 70px;
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            font-size: 28px;
+            font-weight: bold;
+
+            font-family: "Gill Sans", "Gill Sans MT", sans-serif;
+
+            color: white;
+            background-color: #b33e00;
+            /* A darker, rich orange */
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* ============================= */
+        /* SPIN BUTTON                   */
+        /* ============================= */
+
+        .spin-btn {
+
+            margin-top: 20px;
+
+            padding: 12px 35px;
+
+            font-size: 18px;
+            font-weight: bold;
+
+            border-radius: 8px;
+            border: none;
+
+            cursor: pointer;
+
+            z-index: 25;
+
+        }
+
+        .spin-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* ============================= */
+        /* RESULT POPUP                  */
+        /* ============================= */
+
+        .result-popup {
+
+            position: fixed;
+            top: 0;
+            left: 0;
+
+            width: 100%;
+            height: 100%;
+
+            background: rgba(0, 0, 0, 0.65);
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            z-index: 100;
+
+            visibility: hidden;
+            opacity: 0;
+
+            transition: opacity 0.3s ease;
+
+        }
+
+        .result-popup.active {
+
+            visibility: visible;
+            opacity: 1;
+
+        }
+
+        /* Narrower and more focused popup box */
+        .popup-box {
+            background: white;
+            padding: 30px 40px;
+            /* Reduced padding */
+            width: 90%;
+            max-width: 350px;
+            /* Set a narrow max-width */
+            border-radius: 25px;
+            text-align: center;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+            transform: scale(0.8);
+            transition: transform 0.3s ease;
+        }
+
+        /* Text Hierarchy */
+        .popup-text {
+            font-family: 'KanitCustom', sans-serif;
+            color: #e65100;
+            line-height: 1.2;
+        }
+
+        .popup-label-top {
+            font-size: 24px;
+            /* Smaller top line */
+            display: block;
+        }
+
+        .popup-value {
+            font-size: 60px;
+            /* Big, bold value */
+            font-weight: bold;
+            display: block;
+            margin: 5px 0;
+        }
+
+        .popup-label-bottom {
+            font-size: 20px;
+            /* Smallest bottom line */
+            display: block;
+            opacity: 0.8;
+        }
+
+        .close-btn {
+
+            margin-top: 25px;
+
+            padding: 10px 25px;
+
+            border: none;
+
+            border-radius: 10px;
+
+            font-size: 18px;
+
+            cursor: pointer;
+
+            background: #e65100;
+
+            color: white;
+
+        }
+
+        /* Reset Button Styling */
+        .reset-container {
+            position: absolute;
+            bottom: 20px;
+            right: 13%;
+            z-index: 60;
+        }
+
+        .reset-btn {
+            background: white;
+            border: 2px solid #b33e00;
+            padding: 10px 15px;
+            border-radius: 50px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: bold;
+            color: #b33e00;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            transition: all 0.2s ease;
+        }
+
+        .reset-btn:hover {
+            background: #fdf2e9;
+            transform: translateY(-2px);
+        }
+
+        /* Simple CSS Refresh Icon */
+        .refresh-icon {
+            width: 16px;
+            height: 16px;
+            border: 2px solid #b33e00;
+            border-radius: 50%;
+            border-top-color: transparent;
+            position: relative;
+        }
+
+        .refresh-icon::after {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: 0px;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-bottom: 5px solid #b33e00;
+            transform: rotate(-45deg);
+        }
+
+        /* ---------- VIEWER BUTTON ---------- */
+
+        .viewer-button {
+
+            position: fixed;
+
+            bottom: 2vh;
+            right: 2vw;
+
+            padding: 14px 24px;
+
+            font-size: 18px;
+            font-family: 'KanitCustom', sans-serif;
+
+            background: #052b13;
+            color: white;
+
+            border: none;
+            border-radius: 8px;
+
+            cursor: pointer;
+            border: 2px solid black;
+
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+
+            z-index: 30;
+        }
+
+        .viewer-button:hover {
+            background: #16a34a;
+        }
+    </style>
+</head>
+
+
+<body>
+
+    <img src="images/senghuadlogo.jpg" class="top-right-icon">
+    <img src="images/campaign.png" class="top-left-icon">
+
+    <!-- rectangle -->
+
+    <div class="main-box"></div>
+
+    <!-- banner2 under wheel but above rectangle -->
+
+    <img src="images/banner2.png" class="banner2">
+
+    <!-- banner1 topmost -->
+
+    <img src="images/banner1.png" class="banner1">
+
+
+    <!-- wheel section -->
+
+    <div class="wheel-section">
+
+        <div class="wheel-wrapper">
+
+            <div class="wheel" id="wheel"></div>
+
+            <div class="highlight"></div>
+
+        </div>
+
+        <button onclick="spin()" class="spin-btn">SPIN</button>
+
+    </div>
+    <div class="result-popup" id="popup">
+        <div class="popup-box">
+            <div class="popup-text" id="popupText">
+            </div>
+            <button class="close-btn" onclick="closePopup()">ปิด</button>
+        </div>
+    </div>
+    <div class="reset-container">
+        <button class="reset-btn" onclick="resetWheel()">
+            <div class="refresh-icon"></div>
+            Reset
+        </button>
+    </div>
+    <button class="viewer-button" onclick="goViewer()">
+        ไปหน้า Viewer
+    </button>
+    <script>
+        /* ============================= */
+        /* CONFIG */
+        /* ============================= */
+
+        const valuesConfig = {
+            "400": { appearances: 10, chance: 10 },
+            "500": { appearances: 30, chance: 30 },
+            "600": { appearances: 10, chance: 8 },
+            "800": { appearances: 1, chance: 1 },
+            "1000": { appearances: 3, chance: 1 },
+            "1500": { appearances: 2, chance: 0 },
+            "2000": { appearances: 2, chance: 0 }
+        };
+
+        const itemHeight = 70;
+        const REPEAT_COUNT = 10;
+        const probabilities = {};
+        let baseWheelValues = [];
+        let spinning = false;
+        let currentItemIndex = 0;
+        let lastTickIndex = 0;
+
+        // Initialize probabilities and base values
+        for (const [val, config] of Object.entries(valuesConfig)) {
+            probabilities[val] = config.chance;
+            for (let i = 0; i < config.appearances; i++) { baseWheelValues.push(val); }
+        } // Initial shuffle
+        shuffle(baseWheelValues); const wheel = document.getElementById("wheel"); buildWheel();
+        /*=============================*/ /* CORE FUNCTIONS */ /*=============================*/ function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        function buildWheel() {
+            wheel.innerHTML = '';
+            const repeatedValues = [];
+            for (let i = 0; i < REPEAT_COUNT; i++) { repeatedValues.push(...baseWheelValues); } repeatedValues.forEach(val => {
+                const div = document.createElement("div");
+                div.className = "item";
+                div.innerText = val;
+                div.style.fontFamily = "'KanitCustom', sans-serif";
+                wheel.appendChild(div);
+            });
+        }
+
+        function resetWheel() {
+            if (spinning) return;
+            shuffle(baseWheelValues);
+            buildWheel();
+            currentItemIndex = 0;
+            wheel.style.transition = 'none';
+            wheel.style.transform = `translateY(0px)`;
+
+            const btn = document.querySelector('.reset-btn');
+            btn.style.transform = 'scale(0.9)';
+            setTimeout(() => btn.style.transform = 'scale(1)', 100);
+        }
+
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playClick(volume = 0.9) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const duration = 0.04;
+            const bufferSize = audioCtx.sampleRate * duration;
+            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) { data[i] = Math.random() * 2 - 1; } const
+                noise = audioCtx.createBufferSource(); noise.buffer = buffer; const filter = audioCtx.createBiquadFilter();
+            filter.type = "bandpass"; filter.frequency.value = 2000; const gain = audioCtx.createGain();
+            gain.gain.setValueAtTime(volume, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.001,
+                audioCtx.currentTime + duration); noise.connect(filter); filter.connect(gain);
+            gain.connect(audioCtx.destination); noise.start();
+        } function playCelebration() {
+            const
+                frequencies = [523.25, 659.25, 783.99, 1046.50]; frequencies.forEach((freq, i) => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = "sine";
+                    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                    gain.gain.setValueAtTime(0, audioCtx.currentTime);
+                    gain.gain.linearRampToValueAtTime(0.2, audioCtx.currentTime + 0.05);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.8);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(audioCtx.currentTime + (i * 0.02));
+                    osc.stop(audioCtx.currentTime + 0.8);
+                });
+        }
+
+        function showPopup(result) {
+            const popup = document.getElementById("popup");
+            const text = document.getElementById("popupText");
+            text.innerHTML = `
+                <span class="popup-label-top">คุณได้รับส่วนลด</span>
+                <span class="popup-value">${result}</span>
+                <span class="popup-label-bottom">บาท</span>
+                `;
+            popup.classList.add("active");
+            playCelebration();
+        }
+
+        function closePopup() {
+            document.getElementById("popup").classList.remove("active");
+        }
+
+        function chooseResult() {
+            const valid = Object.entries(probabilities).filter(([_, p]) => p > 0);
+            const total = valid.reduce((sum, [_, p]) => sum + p, 0);
+            let rand = Math.random() * total;
+            for (let [key, p] of valid) {
+                if (rand < p) return key; rand -= p;
+            }
+        } /*=============================*/ /* SPIN LOGIC */
+                    /*=============================*/ function spin() {
+            if (spinning) return; if
+                (audioCtx.state === 'suspended') audioCtx.resume(); spinning = true; const result = chooseResult();
+            wheel.style.transition = 'none'; const baseIndex = currentItemIndex % baseWheelValues.length;
+            wheel.style.transform = `translateY(-${baseIndex * itemHeight}px)`; wheel.getBoundingClientRect();
+            wheel.style.transition = 'transform 5s cubic-bezier(0.1,0.7,0.1,1)'; const matches = [];
+            baseWheelValues.forEach((val, i) => { if (val === result) matches.push(i); });
+            const targetBaseIndex = matches[Math.floor(Math.random() * matches.length)];
+            const cycles = 6;
+            currentItemIndex = cycles * baseWheelValues.length + targetBaseIndex;
+            const finalOffset = (currentItemIndex - 2) * itemHeight;
+
+            wheel.style.transform = `translateY(-${finalOffset}px)`;
+            lastTickIndex = -1;
+
+            function monitorMovement() {
+                if (!spinning) return;
+                const matrix = new DOMMatrix(getComputedStyle(wheel).transform);
+                const currentY = -matrix.m42;
+                const passedIndex = Math.floor(currentY / itemHeight);
+                if (passedIndex !== lastTickIndex) {
+                    playClick(0.15);
+                    lastTickIndex = passedIndex;
+                }
+                requestAnimationFrame(monitorMovement);
+            }
+            requestAnimationFrame(monitorMovement);
+
+            setTimeout(() => {
+                spinning = false;
+                playClick(0.6);
+                showPopup(result);
+            }, 5000);
+        }
+        function goViewer() {
+            window.location.href = "/viewer";
+        }
+        /* ============================= */
+        /* KEYBOARD LISTENERS */
+        /* ============================= */
+
+        // This is now outside and runs as soon as the page loads
+        document.addEventListener('keydown', function (event) {
+            const popup = document.getElementById("popup");
+            const isPopupActive = popup.classList.contains("active");
+
+            // Enter to close popup
+            if (event.key === 'Enter') {
+                if (isPopupActive) {
+                    closePopup();
+                    return; // Prevent further action
+                }
+            }
+
+            // Space to spin
+            if (event.code === 'Space') {
+                if (!isPopupActive && !spinning) {
+                    event.preventDefault(); // Stop page scroll
+                    spin();
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>
