@@ -270,11 +270,67 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+        let customerQueue = [];
+        let isDisplayingCustomer = false;
+
         window.goSlot = function () {
             window.location.href = "/slotmachine";
         }
         /* LIMIT 4 */
+        function showNextCustomer() {
 
+            if (customerQueue.length === 0) {
+                isDisplayingCustomer = false;
+                return;
+            }
+
+            isDisplayingCustomer = true;
+
+            const customer = customerQueue.shift();
+
+            const popup = document.getElementById("popupBox");
+
+            popup.innerHTML = `
+        <div class="latest-popup-box">
+            <h2>${customer.customerName}</h2>
+            <p>${customer.tickets} สิทธิ</p>
+        </div>
+    `;
+
+            setTimeout(() => {
+
+                const box = popup.querySelector(".latest-popup-box");
+
+                if (box) {
+                    box.classList.add("fade-out");
+                }
+
+                setTimeout(() => {
+
+                    popup.innerHTML = "";
+                    showNextCustomer();
+
+                }, 2000);
+
+            }, 10000);
+        }
+
+        function newCustomerArrived(customer) {
+
+            customerQueue.push(customer);
+
+            if (!isDisplayingCustomer) {
+                showNextCustomer();
+            }
+        }
+        function newCustomerArrived(name) {
+
+            customerQueue.push(name);
+
+            if (!isDisplayingCustomer) {
+                showNextCustomer();
+            }
+        }
         const q = query(
             collection(db, "entries"),
             orderBy("timestamp", "desc"),
@@ -317,27 +373,7 @@
 
                     lastSeen = latest.timestamp;
 
-                    const popup = document.getElementById("popupBox");
-
-                    popup.innerHTML = `
-                    <div class="latest-popup-box">
-<h2>${latest.customerName}</h2>
-<p>${latest.tickets} สิทธิ</p>
-</div>
-`;
-
-                    setTimeout(() => {
-
-                        const box = popup.querySelector(".latest-popup-box");
-                        if (box) {
-                            box.classList.add("fade-out");
-                        }
-
-                        setTimeout(() => {
-                            popup.innerHTML = "";
-                        }, 2000);   // wait for fade to finish
-
-                    }, 10000);
+                    newCustomerArrived(latest);
 
                 }
 
