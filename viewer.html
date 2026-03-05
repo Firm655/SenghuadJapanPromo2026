@@ -323,14 +323,7 @@
                 showNextCustomer();
             }
         }
-        function newCustomerArrived(name) {
 
-            customerQueue.push(name);
-
-            if (!isDisplayingCustomer) {
-                showNextCustomer();
-            }
-        }
         const q = query(
             collection(db, "entries"),
             orderBy("timestamp", "desc"),
