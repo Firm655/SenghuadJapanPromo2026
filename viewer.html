@@ -142,14 +142,15 @@
 
         .popup-box {
 
-            position: absolute;
+            flex-grow: 1;
 
-            top: 40%;
-            left: 50%;
-
-            transform: translate(-50%, -50%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
 
             text-align: center;
+
+            width: 100%;
         }
 
         .popup-box h2 {
@@ -175,10 +176,11 @@
 
             display: inline-block;
 
+            max-width: 90%;
+            word-wrap: break-word;
+
             opacity: 1;
             transition: opacity 2s ease;
-            /* smooth fade */
-
         }
 
 
@@ -192,6 +194,7 @@
             display: flex;
             justify-content: center;
             margin-top: auto;
+            margin-top: 0vh;
         }
 
         table {
