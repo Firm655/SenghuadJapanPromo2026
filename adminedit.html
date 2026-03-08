@@ -2,18 +2,137 @@
 <html>
 
 <head>
-    <title>Admin Edit - Lucky Draw</title>
     <meta charset="UTF-8">
+    <title>Admin Edit - Lucky Draw</title>
+
+    <style>
+        body {
+            font-family: Arial;
+            padding: 20px;
+            background: #f4f4f4;
+        }
+
+        h1 {
+            margin-bottom: 10px;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            /* Stacks rows vertically */
+            gap: 20px;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+
+        .control-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .action-row {
+            border-top: 1px solid #eee;
+            padding-top: 15px;
+        }
+
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .filter-row {
+            display: flex;
+            gap: 5px;
+        }
+
+        /* Ensure inputs don't get too wide on the header */
+        .filter-row input {
+            width: auto;
+        }
+
+        button {
+            padding: 6px 12px;
+            cursor: pointer;
+        }
+
+        table {
+            margin-top: 20px;
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        table input {
+            width: 95%;
+            box-sizing: border-box;
+        }
+
+        th,
+        td {
+            padding: 8px;
+            border: 1px solid #ccc;
+            text-align: center;
+        }
+
+        th {
+            background: #333;
+            color: white;
+        }
+
+        input {
+            width: 40%;
+        }
+    </style>
+
 </head>
 
 <body>
 
     <h1>Admin Editor</h1>
 
-    <table border="1" id="dataTable">
+    <div class="controls">
+        <div class="control-row">
+            <div class="filter-group">
+                <label>Start</label>
+                <div class="filter-row">
+                    <input type="date" id="startDate">
+                    <input type="time" id="startTime">
+                </div>
+            </div>
+
+            <div class="filter-group">
+                <label>End</label>
+                <div class="filter-row">
+                    <input type="date" id="endDate">
+                    <input type="time" id="endTime">
+                </div>
+            </div>
+            <button onclick="applyFilter()"
+                style="background: #333; color: white; border: none; border-radius: 4px;">กรองข้อมูล</button>
+        </div>
+
+        <div class="control-row action-row">
+            <button onclick="resetView()">ข้อมูลลูกค้าล่าสุด 20 ราย</button>
+            <button onclick="downloadCSV()"
+                style="background: #2e7d32; color: white; border: none; border-radius: 4px;">ดาวน์โหลดไฟล์
+                Excel</button>
+        </div>
+    </div>
+
+    <div id="filterStatus" style="margin-top: 20px; font-weight: bold; color: #555; font-size: 1.1em;">
+        Showing: Latest 20 entries
+    </div>
+
+    <table id="dataTable">
         <thead>
             <tr>
-                <th>ID (ระบบอัตโนมัติ)</th>
+                <th>ID</th>
                 <th>ชื่อลูกค้า</th>
                 <th>เบอร์โทรศัพท์</th>
                 <th>มูลค่าการขาย</th>
@@ -25,20 +144,11 @@
         <tbody></tbody>
     </table>
 
-
     <script type="module">
-
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-
         import {
-            getFirestore,
-            collection,
-            getDocs,
-            doc,
-            updateDoc,
-            deleteDoc
+            getFirestore, collection, getDocs, doc, updateDoc, deleteDoc, query, orderBy, limit
         } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
-
 
         const firebaseConfig = {
             apiKey: "AIzaSyD3QtsPuTT9v6EwNCiwycMZ8_5FUCIEj1E",
@@ -49,141 +159,138 @@
             appId: "1:1004245641810:web:c7b9ed25c7ed9d29fe0d8b"
         };
 
-
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
+        // Helper to format JS Date to 24h string (DD/MM/YYYY, HH:mm:ss)
+        // Helper to format JS Date to 24h string (DD/MM/YYYY, HH:mm:ss)
+        function to24hString(date) {
+            const d = date.getDate().toString().padStart(2, '0');
+            const mo = (date.getMonth() + 1).toString().padStart(2, '0');
+            const y = date.getFullYear();
+            const h = date.getHours().toString().padStart(2, '0');
+            const mi = date.getMinutes().toString().padStart(2, '0');
+            const s = date.getSeconds().toString().padStart(2, '0');
 
-        async function loadData() {
+            return `${d}/${mo}/${y}, ${h}:${mi}:${s}`;
+        }
 
+        function formatStatusText(startDate, startTime, endDate, endTime) {
+            let startStr = startDate ? (startDate + (startTime ? ` ${startTime}` : "")) : null;
+            let endStr = endDate ? (endDate + (endTime ? ` ${endTime}` : "")) : null;
+            if (startStr && endStr) return `ข้อมูลลูกค้าตั้งแต่ ${startStr} ถึง ${endStr}`;
+            if (startStr) return `ข้อมูลลูกค้าตั้งแต่ ${startStr} เป็นต้นไป`;
+            if (endStr) return `ข้อมูลลูกค้าจนถึง ${endStr}`;
+            return "ข้อมูลลูกค้าล่าสุด 20 ราย";
+        }
+
+        function renderTable(data) {
             const tableBody = document.querySelector("#dataTable tbody");
             tableBody.innerHTML = "";
-
-            const querySnapshot = await getDocs(collection(db, "entries"));
-
-            querySnapshot.forEach((documentData) => {
-
-                const data = documentData.data();
-                const id = documentData.id;
-
-                let timeText = "";
-
-                if (data.timestamp) {
-                    const date = data.timestamp.toDate();
-                    timeText = date.toLocaleString();
-                }
-
+            data.forEach(entry => {
+                let timeText = entry.timestamp ? to24hString(entry.timestamp.toDate()) : "";
                 const row = document.createElement("tr");
-
                 row.innerHTML = `
-
-<td>${id}</td>
-
-<td>
-    <input type="text" value="${data.customerName || ""}" id="name-${id}">
-</td>
-
-<td>
-    <input type="text" value="${data.phone || ""}" id="telephone-${id}">
-</td>
-
-<td>
-    <input type="number" value="${data.purchaseValue || 0}" id="purchase-${id}">
-</td>
-
-<td>
-    <input type="number" value="${data.tickets || 0}" id="tickets-${id}">
-</td>
-
-<td>${timeText}</td>
-
-<td>
-    <button onclick="saveEdit('${id}')">Save</button>
-    <button onclick="deleteEntry('${id}')">Delete</button>
-</td>
-
-`;
+                    <td>${entry.id}</td>
+                    <td><input type="text" value="${entry.customerName || ""}" id="name-${entry.id}"></td>
+                    <td><input type="text" value="${entry.telephone || entry.phone || ""}" id="telephone-${entry.id}"></td>
+                    <td><input type="number" value="${entry.purchaseValue || 0}" id="purchase-${entry.id}"></td>
+                    <td><input type="number" value="${entry.tickets || 0}" id="tickets-${entry.id}"></td>
+                    <td>${timeText}</td>
+                    <td>
+                        <button onclick="saveEdit('${entry.id}')">บันทึกการแก้ไข</button>
+                        <button onclick="deleteEntry('${entry.id}')">ลบ</button>
+                    </td>`;
                 tableBody.appendChild(row);
-
             });
-
         }
 
+        async function loadLatest20() {
+            const q = query(collection(db, "entries"), orderBy("timestamp", "desc"), limit(20));
+            const snapshot = await getDocs(q);
+            const data = [];
+            snapshot.forEach(d => data.push({ id: d.id, ...d.data() }));
+            document.getElementById("filterStatus").innerText = "ข้อมูลลูกค้าล่าสุด 20 ราย";
+            renderTable(data);
+        }
+
+        window.resetView = function () {
+            document.getElementById("startDate").value = "";
+            document.getElementById("startTime").value = "";
+            document.getElementById("endDate").value = "";
+            document.getElementById("endTime").value = "";
+            loadLatest20();
+        }
+
+        window.applyFilter = async function () {
+            const startDate = document.getElementById("startDate").value;
+            const startTime = document.getElementById("startTime").value;
+            const endDate = document.getElementById("endDate").value;
+            const endTime = document.getElementById("endTime").value;
+
+            document.getElementById("filterStatus").innerText = formatStatusText(startDate, startTime, endDate, endTime);
+
+            const snapshot = await getDocs(collection(db, "entries"));
+            let allData = [];
+            snapshot.forEach(d => allData.push({ id: d.id, ...d.data() }));
+
+            let start = null, end = null;
+            if (startDate) {
+                start = new Date(startDate);
+                if (startTime) {
+                    const [h, m] = startTime.split(":");
+                    start.setHours(parseInt(h), parseInt(m), 0, 0);
+                } else start.setHours(0, 0, 0, 0);
+            }
+            if (endDate) {
+                end = new Date(endDate);
+                if (endTime) {
+                    const [h, m] = endTime.split(":");
+                    end.setHours(parseInt(h), parseInt(m), 59, 999);
+                } else end.setHours(23, 59, 59, 999);
+            }
+
+            const filtered = allData.filter(e => {
+                if (!e.timestamp) return false;
+                const t = e.timestamp.toDate();
+                return (!start || t >= start) && (!end || t <= end);
+            });
+            renderTable(filtered);
+        }
 
         window.saveEdit = async function (id) {
-
             const name = document.getElementById(`name-${id}`).value;
-            const telephone = document.getElementById(`telephone-${id}`).value;
-            const purchase = Number(document.getElementById(`purchase-${id}`).value);
-            const tickets = Number(document.getElementById(`tickets-${id}`).value);
-
-            const docRef = doc(db, "entries", id);
-
-            await updateDoc(docRef, {
-                customerName: name,
-                telephone: telephone,
-                purchaseValue: purchase,
-                tickets: tickets
+            const tel = document.getElementById(`telephone-${id}`).value;
+            const pur = Number(document.getElementById(`purchase-${id}`).value);
+            const tic = Number(document.getElementById(`tickets-${id}`).value);
+            await updateDoc(doc(db, "entries", id), {
+                customerName: name, telephone: tel, purchaseValue: pur, tickets: tic
             });
-
             alert("Updated!");
-
         }
-
 
         window.deleteEntry = async function (id) {
-
             if (!confirm("Delete this entry?")) return;
-
-            const docRef = doc(db, "entries", id);
-
-            await deleteDoc(docRef);
-
-            loadData();
-
+            await deleteDoc(doc(db, "entries", id));
+            loadLatest20();
         }
+
         window.downloadCSV = async function () {
-
-            const querySnapshot = await getDocs(collection(db, "entries"));
-
-            let csv = "ID,Customer Name,Purchase Value,Tickets,Timestamp\n";
-
-            querySnapshot.forEach((docSnap) => {
-
-                const data = docSnap.data();
-
-                let timeText = "";
-
-                if (data.timestamp) {
-                    const date = data.timestamp.toDate();
-                    timeText = date.toLocaleString();
-                }
-
-                csv += `${docSnap.id},"${data.customerName}",${data.purchaseValue},${data.tickets},"${timeText}"\n`;
-
+            const snapshot = await getDocs(collection(db, "entries"));
+            let csv = "ID,ชื่อลูกค้า,เบอร์โทรศัพท์,มูลค่าการขาย,จำนวนสิทธิ,เวลาการส่งข้อมูล\n";
+            snapshot.forEach(docSnap => {
+                const d = docSnap.data();
+                let timeText = d.timestamp ? to24hString(d.timestamp.toDate()) : "";
+                csv += `${docSnap.id},"${d.customerName}","${d.telephone || ""}",${d.purchaseValue},${d.tickets},"${timeText}"\n`;
             });
-
-            /* UTF-8 BOM FIX */
-            const BOM = "\uFEFF";
-
-            const blob = new Blob([BOM + csv], { type: "text/csv;charset=utf-8;" });
-
+            const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
             const url = URL.createObjectURL(blob);
-
             const a = document.createElement("a");
-
-            a.href = url;
-            a.download = "lucky_draw_entries.csv";
-
-            a.click();
-
-            URL.revokeObjectURL(url);
+            a.href = url; a.download = "lucky_draw_entries.csv"; a.click();
         }
 
-        loadData();
-
+        loadLatest20();
     </script>
-    <button onclick="downloadCSV()">Download Excel</button>
 </body>
 
 </html>
