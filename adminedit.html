@@ -286,7 +286,20 @@
             const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
-            a.href = url; a.download = "lucky_draw_entries.csv"; a.click();
+            const now = new Date();
+
+            const y = now.getFullYear();
+            const mo = (now.getMonth() + 1).toString().padStart(2, '0');
+            const d = now.getDate().toString().padStart(2, '0');
+
+            const h = now.getHours().toString().padStart(2, '0');
+            const mi = now.getMinutes().toString().padStart(2, '0');
+            const s = now.getSeconds().toString().padStart(2, '0');
+
+            const filename = `lucky_draw_entries_${y}-${mo}-${d}_${h}-${mi}-${s}.csv`;
+            a.href = url;
+            a.download = filename;
+            a.click();
         }
 
         loadLatest20();
